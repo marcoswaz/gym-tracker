@@ -974,7 +974,6 @@ function renderAvatarPicker() {
       : (val || '🧑');
   }
 }
-}
 
 // ===== INIT =====
 function initApp() {
