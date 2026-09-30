@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymTracker - Nossos Treinos</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GymTracker" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== TELA DE LOGIN / SELEÇÃO DE PERFIL ===== -->
+  <div id="screen-login" class="screen active">
+    <div class="login-container">
+      <div class="login-logo">
+        <span class="logo-icon">💪</span>
+        <h1>GymTracker</h1>
+        <p>Registre e acompanhe sua evolução</p>
+      </div>
+      <h2>Quem vai treinar hoje?</h2>
+      <div class="profile-cards" id="profile-cards"></div>
+      <button class="btn btn-outline" id="btn-manage-profiles">Gerenciar Perfis</button>
+    </div>
+  </div>
+
+  <!-- ===== TELA PRINCIPAL (DASHBOARD) ===== -->
+  <div id="screen-main" class="screen">
+    <header class="app-header">
+      <div class="header-left">
+        <span class="header-avatar" id="header-avatar"></span>
+        <span class="header-name" id="header-name"></span>
+      </div>
+      <nav class="header-nav">
+        <button class="nav-btn active" data-tab="treinos">Treinos</button>
+        <button class="nav-btn" data-tab="historico">Histórico</button>
+        <button class="nav-btn" data-tab="exercicios">Exercícios</button>
+      </nav>
+      <button class="btn-icon" id="btn-logout" title="Trocar perfil">↩</button>
+    </header>
+
+    <main class="app-main">
+
+      <!-- TAB: TREINOS -->
+      <div id="tab-treinos" class="tab-content active">
+        <div class="section-header">
+          <h2>Meus Treinos</h2>
+          <button class="btn btn-primary" id="btn-new-workout">+ Novo Treino</button>
+        </div>
+        <div class="workout-plans" id="workout-plans"></div>
+      </div>
+
+      <!-- TAB: HISTÓRICO -->
+      <div id="tab-historico" class="tab-content">
+        <div class="section-header">
+          <h2>Histórico</h2>
+          <button class="btn btn-outline" id="btn-export-csv">Exportar CSV</button>
+        </div>
+        <div class="history-filters">
+          <select id="filter-workout">
+            <option value="">Todos os treinos</option>
+          </select>
+          <input type="month" id="filter-month" />
+        </div>
+        <div id="history-list"></div>
+      </div>
+
+      <!-- TAB: EXERCÍCIOS -->
+      <div id="tab-exercicios" class="tab-content">
+        <div class="section-header">
+          <h2>Biblioteca de Exercícios</h2>
+          <button class="btn btn-primary" id="btn-new-exercise">+ Novo Exercício</button>
+        </div>
+        <div class="exercise-filters">
+          <input type="text" id="exercise-search" placeholder="Buscar exercício..." />
+          <select id="exercise-filter-group">
+            <option value="">Todos os grupos</option>
+          </select>
+        </div>
+        <div id="exercise-library"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ===== MODAL: GERENCIAR PERFIS ===== -->
+  <div id="modal-profiles" class="modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Gerenciar Perfis</h3>
+        <button class="btn-close" data-close="modal-profiles">✕</button>
+      </div>
+      <div id="profiles-list"></div>
+      <hr />
+      <h4>Adicionar Perfil</h4>
+      <div class="form-group">
+        <label>Nome</label>
+        <input type="text" id="new-profile-name" placeholder="Ex: João" maxlength="20" />
+      </div>
+      <div class="form-group">
+        <label>Avatar (emoji)</label>
+        <div class="emoji-picker" id="avatar-picker"></div>
+        <input type="hidden" id="new-profile-avatar" value="🧑" />
+      </div>
+      <button class="btn btn-primary" id="btn-add-profile">Adicionar Perfil</button>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: EDITAR PERFIL ===== -->
+  <div id="modal-edit-profile" class="modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Editar Perfil</h3>
+        <button class="btn-close" data-close="modal-edit-profile">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Nome</label>
+        <input type="text" id="edit-profile-name" placeholder="Ex: João" maxlength="20" />
+      </div>
+      <div class="form-group">
+        <label>Avatar (emoji)</label>
+        <div class="emoji-picker" id="edit-avatar-picker"></div>
+        <input type="hidden" id="edit-profile-avatar" value="🧑" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="modal-edit-profile">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-edit-profile">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: CRIAR/EDITAR TREINO ===== -->
+  <div id="modal-workout" class="modal">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3 id="modal-workout-title">Novo Treino</h3>
+        <button class="btn-close" data-close="modal-workout">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Nome do Treino</label>
+        <input type="text" id="workout-name" placeholder="Ex: Treino A - Peito e Tríceps" />
+      </div>
+      <div class="form-group">
+        <label>Descrição</label>
+        <textarea id="workout-description" placeholder="Descrição opcional do treino..." rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Cor de identificação</label>
+        <div class="color-picker" id="color-picker"></div>
+        <input type="hidden" id="workout-color" value="#6366f1" />
+      </div>
+      <hr />
+      <h4>Exercícios do Treino</h4>
+      <div id="workout-exercise-list"></div>
+      <div class="add-exercise-row">
+        <select id="select-exercise-to-add">
+          <option value="">Selecionar exercício...</option>
+        </select>
+        <button class="btn btn-outline" id="btn-add-exercise-to-workout">+ Adicionar</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="modal-workout">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-workout">Salvar Treino</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: REGISTRAR SESSÃO DE TREINO ===== -->
+  <div id="modal-session" class="modal">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 id="session-workout-name">Treino A</h3>
+          <span class="session-date" id="session-date"></span>
+        </div>
+        <button class="btn-close" data-close="modal-session">✕</button>
+      </div>
+      <div id="session-exercises"></div>
+      <div class="form-group">
+        <label>Observações da sessão</label>
+        <textarea id="session-notes" placeholder="Como foi o treino? Alguma observação?" rows="2"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="modal-session">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-session">Salvar Sessão</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: CRIAR/EDITAR EXERCÍCIO ===== -->
+  <div id="modal-exercise" class="modal">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3 id="modal-exercise-title">Novo Exercício</h3>
+        <button class="btn-close" data-close="modal-exercise">✕</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome do Exercício</label>
+          <input type="text" id="exercise-name" placeholder="Ex: Supino Reto" />
+        </div>
+        <div class="form-group">
+          <label>Grupo Muscular</label>
+          <select id="exercise-group">
+            <option value="Peito">Peito</option>
+            <option value="Costas">Costas</option>
+            <option value="Ombros">Ombros</option>
+            <option value="Bíceps">Bíceps</option>
+            <option value="Tríceps">Tríceps</option>
+            <option value="Pernas">Pernas</option>
+            <option value="Glúteos">Glúteos</option>
+            <option value="Abdômen">Abdômen</option>
+            <option value="Cardio">Cardio</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descrição / Execução</label>
+        <textarea id="exercise-description" placeholder="Descreva como executar o exercício corretamente..." rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Link do vídeo (YouTube)</label>
+        <input type="text" id="exercise-video" placeholder="Cole o link do YouTube aqui..." />
+        <small>Ex: https://www.youtube.com/watch?v=XXXXXXX</small>
+      </div>
+      <div class="form-group">
+        <label>Séries padrão</label>
+        <input type="number" id="exercise-sets" value="3" min="1" max="10" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="modal-exercise">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-exercise">Salvar Exercício</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: DETALHES DO EXERCÍCIO ===== -->
+  <div id="modal-exercise-detail" class="modal">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 id="detail-exercise-name"></h3>
+          <span class="badge" id="detail-exercise-group"></span>
+        </div>
+        <button class="btn-close" data-close="modal-exercise-detail">✕</button>
+      </div>
+      <div id="detail-video-container"></div>
+      <div class="form-group" id="detail-desc-container">
+        <h4>Como executar</h4>
+        <p id="detail-exercise-description"></p>
+      </div>
+      <div id="detail-history-container">
+        <h4>Seu histórico neste exercício</h4>
+        <div id="detail-exercise-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: DETALHES DA SESSÃO ===== -->
+  <div id="modal-session-detail" class="modal">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 id="sd-workout-name"></h3>
+          <span class="session-date" id="sd-date"></span>
+        </div>
+        <button class="btn-close" data-close="modal-session-detail">✕</button>
+      </div>
+      <div id="sd-exercises"></div>
+      <div id="sd-notes-container" style="display:none">
+        <h4>Observações</h4>
+        <p id="sd-notes"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="btn-delete-session">Excluir Sessão</button>
+        <button class="btn btn-ghost" data-close="modal-session-detail">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OVERLAY -->
+  <div id="overlay" class="overlay"></div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIv0bxvu2hBSSDYpFCKqGIIgtuKaogim8",
+      authDomain: "gym-tracker-73adf.firebaseapp.com",
+      projectId: "gym-tracker-73adf",
+      storageBucket: "gym-tracker-73adf.firebasestorage.app",
+      messagingSenderId: "419307101945",
+      appId: "1:419307101945:web:b24ea9e34454ef24e68c28"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // Expõe para app.js (que é carregado depois como script clássico via window)
+    window._db         = db;
+    window._fsDoc      = doc;
+    window._fsGetDoc   = getDoc;
+    window._fsSetDoc   = setDoc;
+    window._fsOnSnap   = onSnapshot;
+    window._fsColl     = collection;
+    window._fsGetDocs  = getDocs;
+
+    // Sinaliza que o Firebase está pronto
+    window._firebaseReady = true;
+    document.dispatchEvent(new Event('firebase-ready'));
+  </script>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
