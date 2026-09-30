@@ -184,15 +184,27 @@ function openModal(id) {
   document.getElementById('overlay').classList.add('open');
 }
 
+function stopModalVideos(modalEl) {
+  modalEl.querySelectorAll('iframe').forEach(iframe => {
+    iframe.src = iframe.src; // força reload/stop no YouTube
+    iframe.src = '';
+  });
+}
+
 function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+  const modal = document.getElementById(id);
+  stopModalVideos(modal);
+  modal.classList.remove('open');
   if (!document.querySelector('.modal.open')) {
     document.getElementById('overlay').classList.remove('open');
   }
 }
 
 function closeAllModals() {
-  document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.modal.open').forEach(m => {
+    stopModalVideos(m);
+    m.classList.remove('open');
+  });
   document.getElementById('overlay').classList.remove('open');
 }
 
