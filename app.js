@@ -229,8 +229,11 @@ function renderLoginProfiles() {
   }
   container.innerHTML = state.profiles.map(p => {
     const sessions = (p.sessions || []).length;
+    const avatarHtml = isAvatarPhoto(p.avatar)
+      ? `<img src="${p.avatar}" class="avatar-img" />`
+      : `<span class="avatar">${p.avatar}</span>`;
     return `<div class="profile-card" data-id="${p.id}">
-      <span class="avatar">${p.avatar}</span>
+      ${avatarHtml}
       <div class="name">${p.name}</div>
       <div class="stats">${sessions} treino${sessions !== 1 ? 's' : ''} registrado${sessions !== 1 ? 's' : ''}</div>
     </div>`;
@@ -243,7 +246,11 @@ function renderLoginProfiles() {
 function selectProfile(id) {
   state.currentProfile = id;
   const p = getProfile(id);
-  document.getElementById('header-avatar').textContent = p.avatar;
+  if (isAvatarPhoto(p.avatar)) {
+    document.getElementById('header-avatar').innerHTML = `<img src="${p.avatar}" class="header-avatar-img" />`;
+  } else {
+    document.getElementById('header-avatar').textContent = p.avatar;
+  }
   document.getElementById('header-name').textContent = p.name;
   showScreen('screen-main');
   showTab('treinos');
@@ -258,8 +265,11 @@ function renderProfilesModal() {
   }
   list.innerHTML = state.profiles.map(p => {
     const sessions = (p.sessions || []).length;
+    const avatarHtml = isAvatarPhoto(p.avatar)
+      ? `<img src="${p.avatar}" class="profile-list-avatar-img" />`
+      : `<span class="profile-list-avatar">${p.avatar}</span>`;
     return `<div class="profile-list-item">
-      <span class="profile-list-avatar">${p.avatar}</span>
+      ${avatarHtml}
       <div class="profile-list-info">
         <div class="profile-list-name">${p.name}</div>
         <div class="profile-list-stats">${sessions} sessão(ões) registrada(s)</div>
@@ -317,7 +327,16 @@ function openEditProfileModal(id) {
   editingProfileId = id;
   document.getElementById('edit-profile-name').value = p.name;
   document.getElementById('edit-profile-avatar').value = p.avatar;
-  renderEditAvatarPicker(p.avatar);
+  // Atualiza preview
+  const preview = document.getElementById('edit-avatar-preview');
+  if (isAvatarPhoto(p.avatar)) {
+    preview.innerHTML = `<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
+  } else {
+    preview.innerHTML = p.avatar;
+  }
+  // Limpa input de arquivo
+  document.getElementById('edit-avatar-file').value = '';
+  renderEditAvatarPicker(isAvatarPhoto(p.avatar) ? '' : p.avatar);
   openModal('modal-edit-profile');
 }
 
@@ -331,6 +350,7 @@ function renderEditAvatarPicker(selected) {
       container.querySelectorAll('.emoji-opt').forEach(o => o.classList.remove('selected'));
       opt.classList.add('selected');
       document.getElementById('edit-profile-avatar').value = opt.dataset.avatar;
+      document.getElementById('edit-avatar-preview').innerHTML = opt.dataset.avatar;
     });
   });
 }
@@ -345,7 +365,11 @@ async function saveEditProfile() {
   p.avatar = avatar;
   // Atualiza header se o perfil editado estiver logado
   if (state.currentProfile === editingProfileId) {
-    document.getElementById('header-avatar').textContent = avatar;
+    if (isAvatarPhoto(avatar)) {
+      document.getElementById('header-avatar').innerHTML = `<img src="${avatar}" class="header-avatar-img" />`;
+    } else {
+      document.getElementById('header-avatar').textContent = avatar;
+    }
     document.getElementById('header-name').textContent = name;
   }
   setLoading(true);
@@ -880,7 +904,53 @@ function renderColorPicker(containerId, inputId, selected) {
   });
 }
 
-// ===== AVATAR PICKER =====
+// ===== AVATAR HELPERS =====
+// Retorna true se o valor é uma imagem base64
+function isAvatarPhoto(val) {
+  return val && val.startsWith('data:image');
+}
+
+// Renderiza avatar como emoji ou img dependendo do valor
+function renderAvatarHtml(avatar, cls = '') {
+  if (isAvatarPhoto(avatar)) {
+    return `<img src="${avatar}" class="${cls}" style="border-radius:50%;object-fit:cover" />`;
+  }
+  return avatar || '🧑';
+}
+
+// Comprime e converte imagem para base64
+function handleAvatarUpload(input, prefix) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const size = 200;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      // Crop centralizado
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      const base64 = canvas.toDataURL('image/jpeg', 0.7);
+      document.getElementById(prefix + '-profile-avatar').value = base64;
+      // Atualiza preview
+      const preview = document.getElementById(prefix + '-avatar-preview');
+      preview.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
+      // Desmarca emojis selecionados
+      document.querySelectorAll(`#${prefix === 'new' ? 'avatar-picker' : 'edit-avatar-picker'} .emoji-opt`).forEach(o => o.classList.remove('selected'));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+
+
 function renderAvatarPicker() {
   const container = document.getElementById('avatar-picker');
   const selected  = document.getElementById('new-profile-avatar').value;
@@ -892,8 +962,18 @@ function renderAvatarPicker() {
       container.querySelectorAll('.emoji-opt').forEach(o => o.classList.remove('selected'));
       opt.classList.add('selected');
       document.getElementById('new-profile-avatar').value = opt.dataset.avatar;
+      document.getElementById('new-avatar-preview').innerHTML = opt.dataset.avatar;
     });
   });
+  // Preview inicial
+  const preview = document.getElementById('new-avatar-preview');
+  if (preview) {
+    const val = document.getElementById('new-profile-avatar').value;
+    preview.innerHTML = isAvatarPhoto(val)
+      ? `<img src="${val}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`
+      : (val || '🧑');
+  }
+}
 }
 
 // ===== INIT =====

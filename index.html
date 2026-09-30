@@ -102,7 +102,15 @@
         <input type="text" id="new-profile-name" placeholder="Ex: João" maxlength="20" />
       </div>
       <div class="form-group">
-        <label>Avatar (emoji)</label>
+        <label>Avatar</label>
+        <div class="avatar-upload-area">
+          <div class="avatar-preview" id="new-avatar-preview">🧑</div>
+          <div>
+            <button type="button" class="btn-upload-photo" onclick="document.getElementById('new-avatar-file').click()">📷 Usar foto</button>
+            <input type="file" id="new-avatar-file" accept="image/*" style="display:none" onchange="handleAvatarUpload(this, 'new')" />
+            <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">ou escolha um emoji abaixo</div>
+          </div>
+        </div>
         <div class="emoji-picker" id="avatar-picker"></div>
         <input type="hidden" id="new-profile-avatar" value="🧑" />
       </div>
@@ -122,7 +130,15 @@
         <input type="text" id="edit-profile-name" placeholder="Ex: João" maxlength="20" />
       </div>
       <div class="form-group">
-        <label>Avatar (emoji)</label>
+        <label>Avatar</label>
+        <div class="avatar-upload-area">
+          <div class="avatar-preview" id="edit-avatar-preview">🧑</div>
+          <div>
+            <button type="button" class="btn-upload-photo" onclick="document.getElementById('edit-avatar-file').click()">📷 Usar foto</button>
+            <input type="file" id="edit-avatar-file" accept="image/*" style="display:none" onchange="handleAvatarUpload(this, 'edit')" />
+            <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">ou escolha um emoji abaixo</div>
+          </div>
+        </div>
         <div class="emoji-picker" id="edit-avatar-picker"></div>
         <input type="hidden" id="edit-profile-avatar" value="🧑" />
       </div>
