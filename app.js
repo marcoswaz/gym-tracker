@@ -504,10 +504,14 @@ function renderWorkoutExerciseList() {
     return `<div class="workout-exercise-item">
       <div>
         <div class="workout-exercise-info">${ex ? ex.name : 'Exercício removido'}</div>
-        <div class="workout-exercise-sets">
+        <div class="workout-exercise-sets" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="number" value="${e.sets}" min="1" max="20"
             style="width:50px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font-size:0.85rem"
             onchange="updateTempSets(${i}, this.value)" /> série(s)
+          <span style="color:var(--text3);font-size:0.85rem">×</span>
+          <input type="number" value="${e.targetReps || ''}" min="1" max="100" placeholder="reps meta"
+            style="width:80px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg4);color:var(--text);font-size:0.85rem"
+            onchange="updateTempTargetReps(${i}, this.value)" /> reps (meta)
         </div>
       </div>
       <div class="set-actions">
@@ -521,6 +525,10 @@ function renderWorkoutExerciseList() {
 
 function updateTempSets(i, val) {
   state.tempWorkoutExercises[i].sets = parseInt(val) || 1;
+}
+
+function updateTempTargetReps(i, val) {
+  state.tempWorkoutExercises[i].targetReps = parseInt(val) || null;
 }
 
 function moveTempExercise(i, dir) {
@@ -571,11 +579,13 @@ function openSessionModal(workoutId) {
     let setsHtml = '';
     for (let s = 0; s < e.sets; s++) {
       const lastSet = lastSession ? (lastSession[s] || null) : null;
+      const targetReps = e.targetReps ? e.targetReps : null;
       setsHtml += `<tr>
         <td style="color:var(--text3);font-size:0.85rem">${s + 1}</td>
         <td><input type="number" class="set-weight" data-ex="${ei}" data-set="${s}"
           value="${lastSet ? lastSet.weight : ''}"
           placeholder="${lastSet ? lastSet.weight : '0'}" min="0" step="0.5" /></td>
+        <td style="color:var(--primary);font-size:0.85rem;text-align:center">${targetReps ? targetReps : '—'}</td>
         <td><input type="number" class="set-reps" data-ex="${ei}" data-set="${s}"
           value="${lastSet ? lastSet.reps : ''}"
           placeholder="${lastSet ? lastSet.reps : '0'}" min="0" /></td>
@@ -593,7 +603,7 @@ function openSessionModal(workoutId) {
         <button class="btn-icon-sm" onclick="openExerciseDetail('${ex.id}')" title="Ver exercício">ℹ️</button>
       </div>
       <table class="sets-table">
-        <thead><tr><th>Série</th><th>Peso (kg)</th><th>Reps</th></tr></thead>
+        <thead><tr><th>Série</th><th>Peso (kg)</th><th>Meta</th><th>Reps</th></tr></thead>
         <tbody>${setsHtml}</tbody>
       </table>
     </div>`;
@@ -622,7 +632,11 @@ async function saveSession() {
     const repss   = document.querySelectorAll(`.set-reps[data-ex="${ei}"]`);
     const sets = [];
     for (let s = 0; s < weights.length; s++) {
-      sets.push({ weight: parseFloat(weights[s].value) || 0, reps: parseInt(repss[s].value) || 0 });
+      sets.push({
+        weight:     parseFloat(weights[s].value) || 0,
+        reps:       parseInt(repss[s].value) || 0,
+        targetReps: e.targetReps || null
+      });
     }
     return { exerciseId: e.exerciseId, sets };
   });
@@ -701,9 +715,10 @@ function viewSession(sessionId) {
   document.getElementById('sd-date').textContent = formatDate(s.date);
   document.getElementById('sd-exercises').innerHTML = s.exercises.map(e => {
     const ex = state.exercises.find(x => x.id === e.exerciseId);
-    const chips = e.sets.map((st, i) =>
-      `<div class="set-chip">Série ${i + 1}: ${st.weight}kg × ${st.reps} rep</div>`
-    ).join('');
+    const chips = e.sets.map((st, i) => {
+      const metaStr = st.targetReps ? `/${st.targetReps}` : '';
+      return `<div class="set-chip">Série ${i + 1}: ${st.weight}kg × ${st.reps}${metaStr} rep</div>`;
+    }).join('');
     return `<div class="session-detail-exercise">
       <div class="session-detail-name">${ex ? ex.name : 'Exercício'}</div>
       <div class="sets-display">${chips}</div>
@@ -734,7 +749,7 @@ async function deleteCurrentSession() {
 function exportCSV() {
   const profile = getCurrentProfile();
   const sessions = (profile.sessions || []).sort((a, b) => new Date(a.date) - new Date(b.date));
-  const rows = [['Data', 'Treino', 'Exercício', 'Série', 'Peso (kg)', 'Repetições', 'Observações']];
+  const rows = [['Data', 'Treino', 'Exercício', 'Série', 'Peso (kg)', 'Reps Executadas', 'Reps Meta', 'Observações']];
   sessions.forEach(s => {
     s.exercises.forEach(e => {
       const ex = state.exercises.find(x => x.id === e.exerciseId);
@@ -743,6 +758,7 @@ function exportCSV() {
           formatDateShort(s.date), s.workoutName,
           ex ? ex.name : e.exerciseId,
           i + 1, st.weight, st.reps,
+          st.targetReps || '',
           i === 0 ? (s.notes || '') : ''
         ]);
       });
@@ -827,8 +843,10 @@ function openExerciseDetail(id) {
   document.getElementById('detail-exercise-history').innerHTML = recent.length === 0
     ? '<p style="color:var(--text3);font-size:0.85rem">Nenhuma sessão registrada com este exercício.</p>'
     : recent.map(entry => {
-        const chips = entry.sets.map((st, i) =>
-          `<div class="set-chip">${st.weight}kg × ${st.reps}</div>`).join('');
+        const chips = entry.sets.map((st, i) => {
+          const metaStr = st.targetReps ? `/${st.targetReps}` : '';
+          return `<div class="set-chip">${st.weight}kg × ${st.reps}${metaStr}</div>`;
+        }).join('');
         return `<div class="session-detail-exercise">
           <div class="session-detail-name" style="font-size:0.85rem">${formatDate(entry.date)} · ${entry.workoutName}</div>
           <div class="sets-display">${chips}</div>
